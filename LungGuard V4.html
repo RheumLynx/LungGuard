@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LUNGGUARD - Early Detection Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.22.5/babel.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const specialtiesOptions = [
+      { label: 'Primary Care Physician (PCP)', value: 'pcp' },
+      { label: 'Rheumatology / Internal Medicine / Pulmonology', value: 'specialist' }
+    ];
+
+    const AppHeader = () => (
+      <header className="bg-blue-600 text-white p-4 text-center">
+        <h1 className="text-2xl font-bold">LUNGGUARD</h1>
+        <p className="text-sm">Early detection of interstitial lung diseases</p>
+      </header>
+    );
+
+    const ProgressBar = ({ step, totalSteps }) => (
+      <div className="p-4">
+        <div className="w-full bg-gray-300 rounded-full h-4">
+          <div 
+            className="bg-blue-600 h-4 rounded-full" 
+            style={{ width: `${(step / totalSteps) * 100}%` }}
+          ></div>
+        </div>
+        <p className="text-center mt-2">Step {step} of {totalSteps}</p>
+      </div>
+    );
+
+    const SpecialtySelectionScreen = ({ onNext }) => {
+      const [selectedSpecialty, setSelectedSpecialty] = useState('');
+
+      const handleNext = () => {
+        if (selectedSpecialty) onNext(selectedSpecialty);
+        else alert('You must select a specialty to continue.');
+      };
+
+      return (
+        <div className="p-6">
+          <h1 className="text-xl font-bold mb-4">Medical Specialty Selection</h1>
+          <div className="bg-white shadow rounded-lg mb-4 p-4">
+            <h2 className="text-lg font-semibold mb-2">Select Your Specialty</h2>
+            <select
+              value={selectedSpecialty}
+              onChange={(e) => setSelectedSpecialty(e.target.value)}
+              className="w-full p-2 border rounded-md"
+            >
+              <option value="">Select an option</option>
+              {specialtiesOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-end mt-4">
+            <button 
+              onClick={handleNext} 
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    const SymptomsScreen = ({ specialty, onNext, onBack }) => {
+      const [selectedSymptoms, setSelectedSymptoms] = useState([]);
+      const [hasAutoimmuneDisease, setHasAutoimmuneDisease] = useState(false);
+
+      const handleSymptomChange = (value) => {
+        setSelectedSymptoms((prev) =>
+          prev.includes(value) ? prev.filter((symptom) => symptom !== value) : [...prev, value]
+        );
+      };
+
+      const handleNext = () => {
+        const validForSpecialist = hasAutoimmuneDisease && selectedSymptoms.length >= 1 || selectedSymptoms.length >= 2;
+        if ((specialty === 'pcp' && selectedSymptoms.length >= 2) || (specialty === 'specialist' && validForSpecialist)) {
+          onNext(selectedSymptoms);
+        } else {
+          alert('You must meet the required conditions to continue.');
+        }
+      };
+
+      return (
+        <div className="p-6">
+          <h1 className="text-xl font-bold mb-4">Symptoms Description</h1>
+          {specialty === 'specialist' && (
+            <div className="bg-white shadow rounded-lg mb-4 p-4">
+              <h2 className="text-lg font-semibold mb-2">Systemic Autoimmune Disease</h2>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={hasAutoimmuneDisease}
+                  onChange={() => setHasAutoimmuneDisease(!hasAutoimmuneDisease)}
+                  className="form-checkbox"
+                />
+                <span>Patient has systemic autoimmune disease</span>
+              </label>
+            </div>
+          )}
+          <div className="bg-white shadow rounded-lg mb-4 p-4">
+            <h2 className="text-lg font-semibold mb-2">Select Symptoms Present in the Patient</h2>
+            <div className="space-y-2">
+              {['Dry cough', 'Dyspnea', 'Recurrent fever', 'Velcro-like crackles'].map((symptom) => (
+                <label key={symptom.toLowerCase()} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedSymptoms.includes(symptom.toLowerCase())}
+                    onChange={() => handleSymptomChange(symptom.toLowerCase())}
+                    className="form-checkbox"
+                  />
+                  <span>{symptom}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-between mt-4">
+            <button 
+              onClick={onBack} 
+              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+            >
+              Back
+            </button>
+            <button 
+              onClick={handleNext} 
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    const RiskFactorsScreen = ({ onNext, onBack }) => {
+      const [selectedFactors, setSelectedFactors] = useState([]);
+
+      const handleFactorChange = (value) => {
+        setSelectedFactors((prev) =>
+          prev.includes(value) ? prev.filter((factor) => factor !== value) : [...prev, value]
+        );
+      };
+
+      const handleNext = () => {
+        onNext(selectedFactors);
+      };
+
+      return (
+        <div className="p-6">
+          <h1 className="text-xl font-bold mb-4">Risk Factors</h1>
+          <div className="bg-white shadow rounded-lg mb-4 p-4">
+            <h2 className="text-lg font-semibold mb-2">Select Risk Factors</h2>
+            <div className="space-y-2">
+              {['Advanced age', 'Male', 'Smoking', 'Positive rheumatoid factor', 'Positive ACPA'].map((factor) => (
+                <label key={factor.toLowerCase()} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedFactors.includes(factor.toLowerCase())}
+                    onChange={() => handleFactorChange(factor.toLowerCase())}
+                    className="form-checkbox"
+                  />
+                  <span>{factor}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-between mt-4">
+            <button 
+              onClick={onBack} 
+              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+            >
+              Back
+            </button>
+            <button 
+              onClick={handleNext} 
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    const DiagnosticTestsScreen = ({ onNext, onBack }) => {
+      const [testResults, setTestResults] = useState({ chestXRay: '', spirometry: { fvc: '', dlco: '' } });
+
+      const handleInputChange = (field, value) => {
+        if (['fvc', 'dlco'].includes(field)) {
+          setTestResults((prev) => ({ ...prev, spirometry: { ...prev.spirometry, [field]: value } }));
+        } else {
+          setTestResults((prev) => ({ ...prev, [field]: value }));
+        }
+      };
+
+      const handleNext = () => {
+        onNext(testResults);
+      };
+
+      return (
+        <div className="p-6">
+          <h1 className="text-xl font-bold mb-4">Diagnostic Tests</h1>
+          <div className="bg-white shadow rounded-lg mb-4 p-4">
+            <h2 className="text-lg font-semibold mb-2">Chest X-Ray</h2>
+            <select
+              value={testResults.chestXRay}
+              onChange={(e) => handleInputChange('chestXRay', e.target.value)}
+              className="w-full p-2 border rounded-md"
+            >
+              <option value="">Select a result</option>
+              <option value="normal">Normal</option>
+              <option value="abnormal">Abnormal</option>
+            </select>
+            <h2 className="text-lg font-semibold mt-4 mb-2">Spirometry</h2>
+            <label className="block mb-2">Forced Vital Capacity (FVC%)</label>
+            <input
+              type="number"
+              value={testResults.spirometry.fvc}
+              onChange={(e) => handleInputChange('fvc', e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="Enter FVC% value"
+            />
+            <label className="block mt-4 mb-2">Diffusing Capacity of the Lungs (DLCO%)</label>
+            <input
+              type="number"
+              value={testResults.spirometry.dlco}
+              onChange={(e) => handleInputChange('dlco', e.target.value)}
+              className="w-full p-2 border rounded-md"
+              placeholder="Enter DLCO% value"
+            />
+          </div>
+          <div className="flex justify-between mt-4">
+            <button 
+              onClick={onBack} 
+              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+            >
+              Back
+            </button>
+            <button 
+              onClick={handleNext} 
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    const determineConclusion = (testResults, symptoms, riskFactors) => {
+      let riskScore = 0;
+      const contributingFactors = [];
+
+      if (riskFactors.includes('advanced age')) {
+        riskScore += 1;
+        contributingFactors.push('Advanced age (1 point)');
+      }
+      if (riskFactors.includes('male')) {
+        riskScore += 1;
+        contributingFactors.push('Male gender (1 point)');
+      }
+      if (riskFactors.includes('smoking')) {
+        riskScore += 1;
+        contributingFactors.push('History of smoking (1 point)');
+      }
+      if (riskFactors.includes('positive rheumatoid factor')) {
+        riskScore += 1;
+        contributingFactors.push('Positive rheumatoid factor (1 point)');
+      }
+      if (riskFactors.includes('positive acpa')) {
+        riskScore += 1;
+        contributingFactors.push('Positive ACPA (1 point)');
+      }
+      if (symptoms.includes('dry cough') || symptoms.includes('dyspnea')) {
+        riskScore += 1;
+        contributingFactors.push('Persistent symptoms (1 point)');
+      }
+
+      if (testResults?.chestXRay === 'abnormal' || parseFloat(testResults?.spirometry?.dlco || 0) < 80) {
+        return { conclusion: 'A detailed evaluation is recommended to confirm the presence of interstitial lung disease.', detailedScore: contributingFactors };
+      }
+      if (riskScore >= 4) {
+        return { conclusion: `The patient has a high risk of developing interstitial lung disease.`, detailedScore: contributingFactors };
+      }
+      if (symptoms.includes('velcro-like crackles') || symptoms.length >= 2) {
+        return { conclusion: 'Due to the presence of velcro-like crackles or persistent symptoms, repeating screening tests immediately is recommended.', detailedScore: contributingFactors };
+      }
+      if (symptoms.length > 0 || riskFactors.length > 0) {
+        return { conclusion: 'Although diagnostic tests are normal, annual follow-up is recommended due to the presence of symptoms or risk factors.', detailedScore: contributingFactors };
+      }
+      return { conclusion: 'The results do not suggest interstitial lung disease at this time.', detailedScore: contributingFactors };
+    };
+
+    const ConclusionsScreen = ({ testResults, symptoms, riskFactors, onRestart, onBack }) => {
+      const { conclusion, detailedScore } = determineConclusion(testResults, symptoms, riskFactors);
+      const [email, setEmail] = useState('');
+      const [showEmailForm, setShowEmailForm] = useState(false);
+      const [emailSent, setEmailSent] = useState(false);
+
+      const handleEmailChange = (e) => {
+        setEmail(e.target.value);
+      };
+
+      const sendEmail = () => {
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          alert('Please enter a valid email address');
+          return;
+        }
+
+        // In a real application, this would call an API endpoint to send the email
+        // For this demo, we'll just simulate success
+        console.log('Sending email to:', email);
+        console.log('Conclusion:', conclusion);
+        console.log('Detailed Score:', detailedScore);
+        
+        // Show success message
+        setEmailSent(true);
+        
+        // Hide form after short delay
+        setTimeout(() => {
+          setShowEmailForm(false);
+          setEmailSent(false);
+        }, 3000);
+      };
+
+      return (
+        <div className="p-6">
+          <h1 className="text-xl font-bold mb-4">Conclusions</h1>
+          <div className="bg-white shadow rounded-lg mb-4 p-4">
+            <p className="mb-4">{conclusion}</p>
+            <h2 className="mt-4 font-semibold">Score Details</h2>
+            <ul className="list-disc ml-6">
+              {detailedScore.map((item, index) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          
+          {!showEmailForm && !emailSent && (
+            <div className="flex justify-center my-4">
+              <button
+                onClick={() => setShowEmailForm(true)}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Email Results
+              </button>
+            </div>
+          )}
+          
+          {showEmailForm && !emailSent && (
+            <div className="bg-white shadow rounded-lg mb-4 p-4">
+              <h2 className="text-lg font-semibold mb-2">Email Results</h2>
+              <div className="mb-4">
+                <label className="block mb-2">Recipient Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={handleEmailChange}
+                  className="w-full p-2 border rounded-md"
+                  placeholder="example@domain.com"
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowEmailForm(false)}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded mr-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={sendEmail}
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {emailSent && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+              <span className="block sm:inline">Results successfully sent!</span>
+            </div>
+          )}
+          
+          <div className="flex justify-between mt-4">
+            <button 
+              onClick={onBack} 
+              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+            >
+              Back
+            </button>
+            <button 
+              onClick={onRestart} 
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Restart Assessment
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    const ScreeningFlow = () => {
+      const [step, setStep] = useState(0);
+      const [selectedSpecialty, setSelectedSpecialty] = useState('');
+      const [symptoms, setSymptoms] = useState([]);
+      const [riskFactors, setRiskFactors] = useState([]);
+      const [testResults, setTestResults] = useState(null);
+
+      const handleNextSpecialty = (specialty) => {
+        setSelectedSpecialty(specialty);
+        setStep(1);
+      };
+
+      const handleNextSymptoms = (selectedSymptoms) => {
+        setSymptoms(selectedSymptoms);
+        setStep(2);
+      };
+
+      const handleNextRiskFactors = (selectedRiskFactors) => {
+        setRiskFactors(selectedRiskFactors);
+        setStep(3);
+      };
+
+      const handleNextDiagnosticTests = (results) => {
+        setTestResults(results);
+        setStep(4);
+      };
+
+      const handleBack = () => {
+        setStep(prevStep => Math.max(0, prevStep - 1));
+      };
+
+      const handleRestart = () => {
+        setStep(0);
+        setSelectedSpecialty('');
+        setSymptoms([]);
+        setRiskFactors([]);
+        setTestResults(null);
+      };
+
+      return (
+        <div className="max-w-2xl mx-auto bg-gray-100 min-h-screen">
+          <AppHeader />
+          <ProgressBar step={step + 1} totalSteps={5} />
+          {step === 0 && <SpecialtySelectionScreen onNext={handleNextSpecialty} />}
+          {step === 1 && <SymptomsScreen specialty={selectedSpecialty} onNext={handleNextSymptoms} onBack={handleBack} />}
+          {step === 2 && <RiskFactorsScreen onNext={handleNextRiskFactors} onBack={handleBack} />}
+          {step === 3 && <DiagnosticTestsScreen onNext={handleNextDiagnosticTests} onBack={handleBack} />}
+          {step === 4 && <ConclusionsScreen testResults={testResults} symptoms={symptoms} riskFactors={riskFactors} onRestart={handleRestart} onBack={handleBack} />}
+        </div>
+      );
+    };
+
+    ReactDOM.render(<ScreeningFlow />, document.getElementById('root'));
+  </script>
+</body>
+</html>
